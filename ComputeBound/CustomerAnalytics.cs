@@ -1,4 +1,4 @@
-﻿namespace ComputeBoundOperations.Tests;
+﻿namespace ComputeBoundOperations;
 
 // Simple customer class.
 public class Customer
