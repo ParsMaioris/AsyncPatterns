@@ -1,166 +1,126 @@
-﻿namespace ComputeBoundOperations.Tests;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-// A simple customer class.
-public class Customer
+namespace ComputeBoundOperations.Tests
 {
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public int Value { get; set; }
-    // Will hold the computed result from our heavy operation.
-    public long ComputedScore { get; set; }
-}
-
-// A static class that simulates a compute-bound operation.
-public static class CustomerAnalytics
-{
-    /// <summary>
-    /// Simulates heavy computation by running a loop.
-    /// </summary>
-    /// <param name="value">An input value (e.g. customer value).</param>
-    /// <returns>A computed score based on the input.</returns>
-    public static long ComputeHeavyScore(int value)
+    // Simple customer class.
+    public class Customer
     {
-        long result = 0;
-        // Run a loop to simulate CPU-bound work.
-        for (int i = 1; i <= 100_000; i++)
-        {
-            result += value % (i + 1);
-        }
-        return result;
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int Value { get; set; }
+        // To store the computed result.
+        public long ComputedScore { get; set; }
     }
-}
 
-[TestClass]
-public class CustomerAnalyticsTests
-{
-    /// <summary>
-    /// Helper method to generate a list of dummy customers.
-    /// </summary>
-    private List<Customer> GenerateCustomers(int count)
+    // Class that simulates a heavy, compute-bound operation.
+    public static class CustomerAnalytics
     {
-        var customers = new List<Customer>();
-        for (int i = 0; i < count; i++)
+        /// <summary>
+        /// Performs a CPU-intensive computation.
+        /// </summary>
+        /// <param name="value">A numeric input value.</param>
+        /// <returns>A computed score.</returns>
+        public static long ComputeHeavyScore(int value)
         {
-            customers.Add(new Customer
+            long result = 0;
+            // Simulate heavy computation.
+            for (int i = 1; i <= 100_000; i++)
             {
-                Id = i,
-                Name = $"Customer_{i}",
-                // Cycle values between 1 and 10.
-                Value = (i % 10) + 1
-            });
-        }
-        return customers;
-    }
-
-    /// <summary>
-    /// Demonstrates using Parallel.For to process customers by index.
-    /// </summary>
-    [TestMethod]
-    public void TestParallelForComputesScores()
-    {
-        var customers = GenerateCustomers(100);
-
-        // Process each customer in parallel by index.
-        Parallel.For(0, customers.Count, i =>
-        {
-            customers[i].ComputedScore = CustomerAnalytics.ComputeHeavyScore(customers[i].Value);
-        });
-
-        // Assert that each computed score is greater than 0.
-        foreach (var customer in customers)
-        {
-            Assert.IsTrue(customer.ComputedScore > 0, $"Customer {customer.Id} has an invalid computed score.");
-        }
-    }
-
-    /// <summary>
-    /// Demonstrates using Parallel.ForEach to process each customer.
-    /// </summary>
-    [TestMethod]
-    public void TestParallelForEachComputesScores()
-    {
-        var customers = GenerateCustomers(100);
-
-        // Process each customer in parallel using ForEach.
-        Parallel.ForEach(customers, customer =>
-        {
-            customer.ComputedScore = CustomerAnalytics.ComputeHeavyScore(customer.Value);
-        });
-
-        // Verify each customer’s computed score.
-        foreach (var customer in customers)
-        {
-            Assert.IsTrue(customer.ComputedScore > 0, $"Customer {customer.Id} did not compute a valid score.");
-        }
-    }
-
-    /// <summary>
-    /// Demonstrates using PLINQ to aggregate computed scores from all customers.
-    /// </summary>
-    [TestMethod]
-    public void TestPLINQAggregation()
-    {
-        var customers = GenerateCustomers(100);
-
-        // Use PLINQ to compute the total aggregated score.
-        long totalScore = customers
-            .AsParallel()
-            .Sum(c => CustomerAnalytics.ComputeHeavyScore(c.Value));
-
-        Assert.IsTrue(totalScore > 0, "The total aggregated score should be greater than 0.");
-    }
-
-    /// <summary>
-    /// Demonstrates using Parallel.Invoke to run multiple operations concurrently.
-    /// </summary>
-    [TestMethod]
-    public void TestParallelInvokeForMultipleOperations()
-    {
-        var customers = GenerateCustomers(100);
-        long sum = 0, max = 0, min = long.MaxValue;
-        object lockObj = new object();
-
-        // Run three operations concurrently: summing, finding max, and finding min.
-        Parallel.Invoke(
-            () =>
-            {
-                // Calculate the sum of computed scores.
-                long localSum = 0;
-                foreach (var customer in customers)
-                {
-                    localSum += CustomerAnalytics.ComputeHeavyScore(customer.Value);
-                }
-                lock (lockObj)
-                {
-                    sum = localSum;
-                }
-            },
-            () =>
-            {
-                // Calculate the maximum computed score.
-                long localMax = customers
-                    .AsParallel()
-                    .Max(c => CustomerAnalytics.ComputeHeavyScore(c.Value));
-                lock (lockObj)
-                {
-                    max = localMax;
-                }
-            },
-            () =>
-            {
-                // Calculate the minimum computed score.
-                long localMin = customers
-                    .AsParallel()
-                    .Min(c => CustomerAnalytics.ComputeHeavyScore(c.Value));
-                lock (lockObj)
-                {
-                    min = localMin;
-                }
+                result += value % (i + 1);
             }
-        );
+            return result;
+        }
+    }
 
-        Assert.IsTrue(sum > 0, "The sum of computed scores should be positive.");
-        Assert.IsTrue(max > 0, "The maximum computed score should be positive.");
-        Assert.IsTrue(min >= 0, "The minimum computed score should be zero or more.");
+    [TestClass]
+    public class CustomerAnalyticsTests
+    {
+        /// <summary>
+        /// Generates a list of dummy customers.
+        /// </summary>
+        private List<Customer> GenerateCustomers(int count)
+        {
+            var customers = new List<Customer>();
+            for (int i = 0; i < count; i++)
+            {
+                customers.Add(new Customer
+                {
+                    Id = i,
+                    Name = $"Customer_{i}",
+                    // Cycle customer values between 1 and 10.
+                    Value = (i % 10) + 1
+                });
+            }
+            return customers;
+        }
+
+        /// <summary>
+        /// Uses PLINQ to perform the heavy computation and aggregate the results.
+        /// </summary>
+        [TestMethod]
+        public void TestPLINQAggregation()
+        {
+            var customers = GenerateCustomers(100);
+
+            // PLINQ distributes the heavy computation across threads.
+            long totalSum = customers.AsParallel().Sum(c => CustomerAnalytics.ComputeHeavyScore(c.Value));
+            long maxScore = customers.AsParallel().Max(c => CustomerAnalytics.ComputeHeavyScore(c.Value));
+            long minScore = customers.AsParallel().Min(c => CustomerAnalytics.ComputeHeavyScore(c.Value));
+
+            Assert.IsTrue(totalSum > 0, "Total aggregated score should be greater than 0.");
+            Assert.IsTrue(maxScore > 0, "Maximum computed score should be greater than 0.");
+            Assert.IsTrue(minScore >= 0, "Minimum computed score should be zero or more.");
+        }
+
+        /// <summary>
+        /// Uses Parallel.For and Parallel.ForEach to perform identical heavy computations.
+        /// This demonstrates task parallelism using both index-based and element-based approaches.
+        /// </summary>
+        [TestMethod]
+        public void TestParallelForAndForEachAggregation()
+        {
+            // Create two separate customer lists.
+            var customersFor = GenerateCustomers(100);
+            var customersForEach = GenerateCustomers(100);
+
+            // Using Parallel.For (index-based iteration)
+            Parallel.For(0, customersFor.Count, i =>
+            {
+                customersFor[i].ComputedScore = CustomerAnalytics.ComputeHeavyScore(customersFor[i].Value);
+            });
+
+            // Aggregate results from the Parallel.For operation.
+            long totalSumFor = customersFor.Sum(c => c.ComputedScore);
+            long maxScoreFor = customersFor.Max(c => c.ComputedScore);
+            long minScoreFor = customersFor.Min(c => c.ComputedScore);
+
+            // Using Parallel.ForEach (element-based iteration)
+            Parallel.ForEach(customersForEach, customer =>
+            {
+                customer.ComputedScore = CustomerAnalytics.ComputeHeavyScore(customer.Value);
+            });
+
+            long totalSumForEach = customersForEach.Sum(c => c.ComputedScore);
+            long maxScoreForEach = customersForEach.Max(c => c.ComputedScore);
+            long minScoreForEach = customersForEach.Min(c => c.ComputedScore);
+
+            // Validate both methods yield expected results.
+            Assert.IsTrue(totalSumFor > 0, "Parallel.For: Total aggregated score should be greater than 0.");
+            Assert.IsTrue(maxScoreFor > 0, "Parallel.For: Maximum computed score should be greater than 0.");
+            Assert.IsTrue(minScoreFor >= 0, "Parallel.For: Minimum computed score should be zero or more.");
+
+            Assert.IsTrue(totalSumForEach > 0, "Parallel.ForEach: Total aggregated score should be greater than 0.");
+            Assert.IsTrue(maxScoreForEach > 0, "Parallel.ForEach: Maximum computed score should be greater than 0.");
+            Assert.IsTrue(minScoreForEach >= 0, "Parallel.ForEach: Minimum computed score should be zero or more.");
+
+            // Confirm both approaches produced identical aggregates.
+            Assert.AreEqual(totalSumFor, totalSumForEach, "Total sum must be equal between Parallel.For and Parallel.ForEach.");
+            Assert.AreEqual(maxScoreFor, maxScoreForEach, "Max score must be equal between Parallel.For and Parallel.ForEach.");
+            Assert.AreEqual(minScoreFor, minScoreForEach, "Min score must be equal between Parallel.For and Parallel.ForEach.");
+        }
     }
 }
