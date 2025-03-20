@@ -12,12 +12,12 @@ public static class CustomerPayments
     public static async IAsyncEnumerable<(int index, string data)> GetDataAsync()
     {
         var items = new List<(int index, int delay, string data)>
-            {
-                (0, 3000, "Payment processed for Order 0"),
-                (1, 1000, "Payment processed for Order 1"),
-                (2, 2000, "Payment processed for Order 2"),
-                (3, 500,  "Payment processed for Order 3")
-            };
+        {
+            (0, 3000, "Payment processed for Order 0"),
+            (1, 1000, "Payment processed for Order 1"),
+            (2, 2000, "Payment processed for Order 2"),
+            (3, 500,  "Payment processed for Order 3")
+        };
 
         // Launch all tasks concurrently.
         var tasks = new List<Task<(int index, string data)>>();
@@ -62,12 +62,15 @@ public class IoBoundOperationsTests
         }
 
         // We expect 4 results.
-        Assert.AreEqual(4, results.Count, "Expected 4 results from GetDataAsync.");
+        Assert.AreEqual(4, results.Count,
+            "Expected 4 results from GetDataAsync.");
 
         // Given the delays (Order 3: 500ms, Order 1: 1000ms, Order 2: 2000ms, Order 0: 3000ms),
         // the expected order of completion is: 3, 1, 2, 0.
         var expectedOrder = new List<int> { 3, 1, 2, 0 };
-        CollectionAssert.AreEqual(expectedOrder, results.ConvertAll(r => r.index), "The returned indices do not match the expected order based on delay times.");
+        CollectionAssert.AreEqual(expectedOrder,
+            results.ConvertAll(r => r.index),
+            "The returned indices do not match the expected order based on delay times.");
     }
 
     /// <summary>
@@ -79,12 +82,12 @@ public class IoBoundOperationsTests
     public async Task TestPaymentNotificationInline()
     {
         var items = new List<(int index, int delay, string data)>
-            {
-                (0, 3000, "Payment processed for Order 0"),
-                (1, 1000, "Payment processed for Order 1"),
-                (2, 2000, "Payment processed for Order 2"),
-                (3, 500,  "Payment processed for Order 3")
-            };
+        {
+            (0, 3000, "Payment processed for Order 0"),
+            (1, 1000, "Payment processed for Order 1"),
+            (2, 2000, "Payment processed for Order 2"),
+            (3, 500,  "Payment processed for Order 3")
+        };
 
         // List to capture notifications immediately after each payment completes.
         var notifications = new List<(int index, string notification)>();
@@ -107,11 +110,13 @@ public class IoBoundOperationsTests
         }
 
         var results = await Task.WhenAll(tasks);
-        Assert.AreEqual(items.Count, notifications.Count, "All notifications should have been sent.");
+        Assert.AreEqual(items.Count, notifications.Count,
+            "All notifications should have been sent.");
 
         var expectedOrder = new List<int> { 3, 1, 2, 0 };
         var actualOrder = notifications.Select(n => n.index).ToList();
-        CollectionAssert.AreEqual(expectedOrder, actualOrder, "The notifications order does not match the expected processing order.");
+        CollectionAssert.AreEqual(expectedOrder, actualOrder,
+            "The notifications order does not match the expected processing order.");
     }
 
     /// <summary>
@@ -125,12 +130,12 @@ public class IoBoundOperationsTests
         async IAsyncEnumerable<(int index, string data)> GetDataWithExceptionAsync()
         {
             var items = new List<(int index, int delay, string data)>
-                {
-                    (0, 3000, "Payment processed for Order 0"),
-                    (1, 1000, "Payment processed for Order 1"),
-                    (2, 2000, "Payment processed for Order 2"),
-                    (3, 500,  "Payment processed for Order 3")
-                };
+            {
+                (0, 3000, "Payment processed for Order 0"),
+                (1, 1000, "Payment processed for Order 1"),
+                (2, 2000, "Payment processed for Order 2"),
+                (3, 500,  "Payment processed for Order 3")
+            };
 
             var tasks = new List<Task<(int index, string data)>>();
             foreach (var item in items)
@@ -140,7 +145,8 @@ public class IoBoundOperationsTests
                     await Task.Delay(item.delay);
                     if (item.index == 2)
                     {
-                        throw new InvalidOperationException("Simulated exception in async iterator");
+                        throw new InvalidOperationException(
+                            "Simulated exception in async iterator");
                     }
                     return (item.index, item.data);
                 }));
@@ -177,12 +183,12 @@ public class IoBoundOperationsTests
     public async Task TestPaymentNotificationInline_ExceptionHandling()
     {
         var items = new List<(int index, int delay, string data)>
-            {
-                (0, 3000, "Payment processed for Order 0"),
-                (1, 1000, "Payment processed for Order 1"),
-                (2, 2000, "Payment processed for Order 2"),
-                (3, 500,  "Payment processed for Order 3")
-            };
+        {
+            (0, 3000, "Payment processed for Order 0"),
+            (1, 1000, "Payment processed for Order 1"),
+            (2, 2000, "Payment processed for Order 2"),
+            (3, 500,  "Payment processed for Order 3")
+        };
 
         var notifications = new List<(int index, string notification)>();
         object lockObj = new object();
@@ -196,7 +202,8 @@ public class IoBoundOperationsTests
                 // Simulate an exception for a specific payment.
                 if (item.index == 1)
                 {
-                    throw new InvalidOperationException("Simulated exception in inline notification");
+                    throw new InvalidOperationException(
+                        "Simulated exception in inline notification");
                 }
                 string notification = $"Notification: Payment {item.index} processed - {item.data} at {DateTime.Now:HH:mm:ss.fff}";
                 lock (lockObj)
