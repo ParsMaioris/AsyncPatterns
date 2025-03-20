@@ -72,8 +72,8 @@ public class EventTests
     public void TestSingleSubscriberReceivesEvent()
     {
         // Arrange
-        var publisher = new EventsDemo.EventPublisher();
-        var subscriber = new EventsDemo.EventSubscriber();
+        var publisher = new EventPublisher();
+        var subscriber = new EventSubscriber();
         publisher.EventOccurred += subscriber.HandleEvent;
 
         // Act
@@ -92,9 +92,9 @@ public class EventTests
     public void TestMultipleSubscribersReceiveEvent()
     {
         // Arrange
-        var publisher = new EventsDemo.EventPublisher();
-        var subscriber1 = new EventsDemo.EventSubscriber();
-        var subscriber2 = new EventsDemo.EventSubscriber();
+        var publisher = new EventPublisher();
+        var subscriber1 = new EventSubscriber();
+        var subscriber2 = new EventSubscriber();
 
         publisher.EventOccurred += subscriber1.HandleEvent;
         publisher.EventOccurred += subscriber2.HandleEvent;
@@ -118,8 +118,8 @@ public class EventTests
     public void TestUnsubscribeStopsReceivingEvent()
     {
         // Arrange
-        var publisher = new EventsDemo.EventPublisher();
-        var subscriber = new EventsDemo.EventSubscriber();
+        var publisher = new EventPublisher();
+        var subscriber = new EventSubscriber();
 
         publisher.EventOccurred += subscriber.HandleEvent;
 
