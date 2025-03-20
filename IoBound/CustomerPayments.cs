@@ -1,4 +1,4 @@
-namespace IoBoundOperations.Tests;
+namespace IoBoundOperations;
 
 /// <summary>
 /// Simulates processing payment data using an asynchronous iterator.
@@ -41,7 +41,7 @@ public static class CustomerPayments
 }
 
 /// <summary>
-/// MSTest class demonstrating I-O bound operations using an asynchronous iterator.
+/// MSTest class demonstrating I-O bound operations using two patterns and their exception handling.
 /// </summary>
 [TestClass]
 public class IoBoundOperationsTests
@@ -91,14 +91,12 @@ public class IoBoundOperationsTests
         object lockObj = new object();
 
         var tasks = new List<Task<(int index, string data)>>();
-
-        // For each item, start a task that awaits the delay, then immediately sends a notification.
         foreach (var item in items)
         {
             tasks.Add(Task.Run(async () =>
             {
                 await Task.Delay(item.delay);
-                // Immediately send notification inline after the await.
+                // Immediately send notification inline after awaiting.
                 string notification = $"Notification: Payment {item.index} processed - {item.data} at {DateTime.Now:HH:mm:ss.fff}";
                 lock (lockObj)
                 {
@@ -108,16 +106,115 @@ public class IoBoundOperationsTests
             }));
         }
 
-        // Await all payment tasks to complete.
         var results = await Task.WhenAll(tasks);
-
-        // Verify that notifications were sent for all payment items.
         Assert.AreEqual(items.Count, notifications.Count, "All notifications should have been sent.");
 
-        // Based on the simulated delays, the expected order of completion (and notifications) is:
-        // Order 3 (500ms), Order 1 (1000ms), Order 2 (2000ms), Order 0 (3000ms).
         var expectedOrder = new List<int> { 3, 1, 2, 0 };
         var actualOrder = notifications.Select(n => n.index).ToList();
         CollectionAssert.AreEqual(expectedOrder, actualOrder, "The notifications order does not match the expected processing order.");
+    }
+
+    /// <summary>
+    /// Demonstrates exception handling in the asynchronous iterator pattern.
+    /// This test simulates an exception when processing a specific payment.
+    /// </summary>
+    [TestMethod]
+    public async Task TestGetDataAsync_ExceptionHandling()
+    {
+        // Local async iterator that simulates an exception for a specific item.
+        async IAsyncEnumerable<(int index, string data)> GetDataWithExceptionAsync()
+        {
+            var items = new List<(int index, int delay, string data)>
+                {
+                    (0, 3000, "Payment processed for Order 0"),
+                    (1, 1000, "Payment processed for Order 1"),
+                    (2, 2000, "Payment processed for Order 2"),
+                    (3, 500,  "Payment processed for Order 3")
+                };
+
+            var tasks = new List<Task<(int index, string data)>>();
+            foreach (var item in items)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    await Task.Delay(item.delay);
+                    if (item.index == 2)
+                    {
+                        throw new InvalidOperationException("Simulated exception in async iterator");
+                    }
+                    return (item.index, item.data);
+                }));
+            }
+
+            while (tasks.Count > 0)
+            {
+                var finishedTask = await Task.WhenAny(tasks);
+                tasks.Remove(finishedTask);
+                yield return await finishedTask; // Will throw if an exception occurred.
+            }
+        }
+
+        var results = new List<(int index, string data)>();
+        try
+        {
+            await foreach (var result in GetDataWithExceptionAsync())
+            {
+                results.Add(result);
+            }
+            Assert.Fail("Expected exception was not thrown.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Assert.AreEqual("Simulated exception in async iterator", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates exception handling in the await-notification inline pattern.
+    /// This test simulates an exception during the payment processing.
+    /// </summary>
+    [TestMethod]
+    public async Task TestPaymentNotificationInline_ExceptionHandling()
+    {
+        var items = new List<(int index, int delay, string data)>
+            {
+                (0, 3000, "Payment processed for Order 0"),
+                (1, 1000, "Payment processed for Order 1"),
+                (2, 2000, "Payment processed for Order 2"),
+                (3, 500,  "Payment processed for Order 3")
+            };
+
+        var notifications = new List<(int index, string notification)>();
+        object lockObj = new object();
+        var tasks = new List<Task<(int index, string data)>>();
+
+        foreach (var item in items)
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                await Task.Delay(item.delay);
+                // Simulate an exception for a specific payment.
+                if (item.index == 1)
+                {
+                    throw new InvalidOperationException("Simulated exception in inline notification");
+                }
+                string notification = $"Notification: Payment {item.index} processed - {item.data} at {DateTime.Now:HH:mm:ss.fff}";
+                lock (lockObj)
+                {
+                    notifications.Add((item.index, notification));
+                }
+                return (item.index, item.data);
+            }));
+        }
+
+        try
+        {
+            var results = await Task.WhenAll(tasks);
+            Assert.Fail("Expected exception was not thrown.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Assert.AreEqual("Simulated exception in inline notification", ex.Message);
+        }
     }
 }
