@@ -81,3 +81,49 @@ public class RegularLocksDemo
         //Console.WriteLine("Concurrent operations finished. Check for unexpected exceptions or inconsistent state.");
     }
 }
+
+// -----------------------
+// Unit Tests (namespace Locks.Tests)
+// -----------------------
+[TestClass]
+public class RegularLocksDemoTests
+{
+    /// <summary>
+    /// Verifies that concurrent operations in RegularLocksDemo.Run() complete successfully.
+    /// This test exercises your demo, which uses the internal MultiValueDictionary.
+    /// </summary>
+    [TestMethod]
+    public void TestRegularLocksConcurrentOperationsCompletesSuccessfully()
+    {
+        // Act: Run the demo. If an unhandled exception occurs, the test will fail.
+        RegularLocksDemo.Run();
+        Assert.IsTrue(true, "Concurrent operations completed successfully.");
+    }
+
+    /// <summary>
+    /// Demonstrates exception handling using the internal MultiValueDictionary with a regular lock.
+    /// The test attempts to remove a value for a non-existent key to force a KeyNotFoundException.
+    /// </summary>
+    [TestMethod]
+    public void TestRegularLocksExceptionHandlingWithMultiValueDictionary()
+    {
+        object localLocker = new object();
+        var localDict = new MultiValueDictionary<int, int>();
+        bool exceptionCaught = false;
+
+        try
+        {
+            lock (localLocker)
+            {
+                // Attempt to remove from a key that doesn't exist.
+                localDict.Remove(2, 200);
+            }
+        }
+        catch (KeyNotFoundException)
+        {
+            exceptionCaught = true;
+        }
+
+        Assert.IsTrue(exceptionCaught, "Expected KeyNotFoundException was not thrown.");
+    }
+}
