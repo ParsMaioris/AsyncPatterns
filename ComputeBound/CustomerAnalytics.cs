@@ -122,5 +122,90 @@ namespace ComputeBoundOperations.Tests
             Assert.AreEqual(maxScoreFor, maxScoreForEach, "Max score must be equal between Parallel.For and Parallel.ForEach.");
             Assert.AreEqual(minScoreFor, minScoreForEach, "Min score must be equal between Parallel.For and Parallel.ForEach.");
         }
+
+        /// <summary>
+        /// Demonstrates exception handling using PLINQ.
+        /// This test deliberately throws an exception for a specific customer to simulate an error.
+        /// </summary>
+        [TestMethod]
+        public void TestPLINQExceptionHandling()
+        {
+            var customers = GenerateCustomers(100);
+
+            try
+            {
+                // PLINQ distributes the heavy computation across threads.
+                // We simulate an exception when processing the customer with Id == 50.
+                long totalSum = customers.AsParallel().Sum(c =>
+                {
+                    if (c.Id == 50)
+                        throw new InvalidOperationException("Simulated exception in PLINQ");
+                    return CustomerAnalytics.ComputeHeavyScore(c.Value);
+                });
+
+                Assert.Fail("Expected exception was not thrown in PLINQ.");
+            }
+            catch (AggregateException aggEx)
+            {
+                // Verify that the simulated exception is present in the inner exceptions.
+                Assert.IsTrue(aggEx.InnerExceptions.Any(e =>
+                    e is InvalidOperationException && e.Message.Contains("Simulated exception in PLINQ")),
+                    "PLINQ exception did not match expected.");
+            }
+        }
+
+        /// <summary>
+        /// Demonstrates exception handling using Parallel.For and Parallel.ForEach.
+        /// This test simulates errors by throwing exceptions for specific customer IDs.
+        /// </summary>
+        [TestMethod]
+        public void TestParallelExceptionHandling()
+        {
+            // --- Parallel.For exception handling ---
+            var customersFor = GenerateCustomers(100);
+            AggregateException forEx = null;
+            try
+            {
+                // Using Parallel.For (index-based iteration)
+                Parallel.For(0, customersFor.Count, i =>
+                {
+                    if (customersFor[i].Id == 25)
+                        throw new InvalidOperationException("Simulated exception in Parallel.For");
+                    customersFor[i].ComputedScore = CustomerAnalytics.ComputeHeavyScore(customersFor[i].Value);
+                });
+                Assert.Fail("Expected exception was not thrown in Parallel.For.");
+            }
+            catch (AggregateException aggEx)
+            {
+                forEx = aggEx;
+            }
+            Assert.IsNotNull(forEx, "AggregateException was not thrown for Parallel.For.");
+            Assert.IsTrue(forEx.InnerExceptions.Any(e =>
+                e is InvalidOperationException && e.Message.Contains("Simulated exception in Parallel.For")),
+                "Parallel.For exception did not match expected.");
+
+            // --- Parallel.ForEach exception handling ---
+            var customersForEach = GenerateCustomers(100);
+            AggregateException forEachEx = null;
+            try
+            {
+                // Using Parallel.ForEach (element-based iteration)
+                Parallel.ForEach(customersForEach, customer =>
+                {
+                    if (customer.Id == 75)
+                        throw new InvalidOperationException("Simulated exception in Parallel.ForEach");
+                    customer.ComputedScore = CustomerAnalytics.ComputeHeavyScore(customer.Value);
+                });
+                Assert.Fail("Expected exception was not thrown in Parallel.ForEach.");
+            }
+            catch (AggregateException aggEx)
+            {
+                forEachEx = aggEx;
+            }
+            Assert.IsNotNull(forEachEx, "AggregateException was not thrown for Parallel.ForEach.");
+            Assert.IsTrue(forEachEx.InnerExceptions.Any(e =>
+                e is InvalidOperationException && e.Message.Contains("Simulated exception in Parallel.ForEach")),
+                "Parallel.ForEach exception did not match expected.");
+        }
     }
 }
