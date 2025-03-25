@@ -9,12 +9,17 @@ public class PLINQScoringTests
     public void ShouldComputeScoresUsingPLINQ()
     {
         var customers = CustomerFactory.Build(100);
-        var total = customers.AsParallel().Sum(c => ComputeEngine.EvaluateScore(c.Value));
-        var max = customers.AsParallel().Max(c => ComputeEngine.EvaluateScore(c.Value));
-        var min = customers.AsParallel().Min(c => ComputeEngine.EvaluateScore(c.Value));
-        Assert.IsTrue(total > 0);
-        Assert.IsTrue(max > 0);
-        Assert.IsTrue(min >= 0);
+        var stats = customers
+            .AsParallel()
+            .Aggregate(
+                () => new ScoreAccumulator(),
+                (acc, c) => acc.Accumulate(ComputeEngine.EvaluateScore(c.Value)),
+                (acc1, acc2) => acc1.Combine(acc2),
+                final => final
+            );
+        Assert.IsTrue(stats.Sum > 0);
+        Assert.IsTrue(stats.Max > 0);
+        Assert.IsTrue(stats.Min >= 0);
     }
 
     [TestMethod]
@@ -23,11 +28,18 @@ public class PLINQScoringTests
         var customers = CustomerFactory.Build(100);
         try
         {
-            var sum = customers.AsParallel().Sum(c =>
-            {
-                if (c.Id == 50) throw new InvalidOperationException("Simulated exception in PLINQ");
-                return ComputeEngine.EvaluateScore(c.Value);
-            });
+            var stats = customers
+                .AsParallel()
+                .Aggregate(
+                    () => new ScoreAccumulator(),
+                    (acc, c) =>
+                    {
+                        if (c.Id == 50) throw new InvalidOperationException("Simulated exception in PLINQ");
+                        return acc.Accumulate(ComputeEngine.EvaluateScore(c.Value));
+                    },
+                    (acc1, acc2) => acc1.Combine(acc2),
+                    final => final
+                );
             Assert.Fail();
         }
         catch (AggregateException ex)
@@ -37,5 +49,35 @@ public class PLINQScoringTests
                     e is InvalidOperationException &&
                     e.Message.Contains("Simulated exception in PLINQ")));
         }
+    }
+}
+
+public class ScoreAccumulator
+{
+    public long Sum { get; private set; }
+    public long Max { get; private set; }
+    public long Min { get; private set; }
+
+    public ScoreAccumulator()
+    {
+        Sum = 0;
+        Max = long.MinValue;
+        Min = long.MaxValue;
+    }
+
+    public ScoreAccumulator Accumulate(long value)
+    {
+        Sum += value;
+        if (value > Max) Max = value;
+        if (value < Min) Min = value;
+        return this;
+    }
+
+    public ScoreAccumulator Combine(ScoreAccumulator other)
+    {
+        Sum += other.Sum;
+        if (other.Max > Max) Max = other.Max;
+        if (other.Min < Min) Min = other.Min;
+        return this;
     }
 }
