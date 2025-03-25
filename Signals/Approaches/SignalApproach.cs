@@ -2,7 +2,7 @@ namespace ThreadBound.Signals.Approaches;
 
 public static class SignalApproach
 {
-    public static async Task<List<int>> RunTasksAsync()
+    public static List<int> RunTasks()
     {
         var signals = new List<(ManualResetEventSlim handle, int originalIndex)>();
         var tasks = new List<Task>();

@@ -6,9 +6,10 @@ namespace ThreadBound.Signals;
 public class SignalDemo
 {
     [TestMethod]
-    public async Task ShouldReturnCompletionOrderUsingSignals()
+    public void ShouldReturnCompletionOrderUsingSignals()
     {
-        var order = await SignalApproach.RunTasksAsync();
+        var order = SignalApproach.RunTasks();
+
         Assert.AreEqual(4, order.Count);
         Assert.AreEqual(4, order.Distinct().Count());
     }
