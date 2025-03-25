@@ -13,6 +13,7 @@ public static class SignalApproach
         {
             var index = i;
             var signal = new ManualResetEventSlim(false);
+
             signals.Add((signal, index));
             tasks.Add(Task.Run(async () =>
             {
@@ -21,13 +22,12 @@ public static class SignalApproach
             }));
         }
 
-        _ = Task.WhenAll(tasks);
-
         while (signals.Any())
         {
             var waitHandles = signals.Select(s => s.handle.WaitHandle).ToArray();
             var triggered = WaitHandle.WaitAny(waitHandles);
             var chosen = signals[triggered];
+
             signals.RemoveAt(triggered);
             chosen.handle.Dispose();
             order.Add(chosen.originalIndex);
