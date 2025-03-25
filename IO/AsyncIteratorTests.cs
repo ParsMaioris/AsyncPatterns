@@ -4,7 +4,7 @@ using ThreadBound.IO.Services;
 namespace ThreadBound.IO;
 
 [TestClass]
-public class AsyncIteratorNotificationTests
+public class AsyncIteratorTests
 {
     [TestMethod]
     public async Task ShouldProcessPaymentsAsyncIterator()

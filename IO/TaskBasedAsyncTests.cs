@@ -4,7 +4,7 @@ using ThreadBound.IO.Services;
 namespace ThreadBound.IO;
 
 [TestClass]
-public class AwaitPatternNotificationTests
+public class TaskBasedAsyncTests
 {
     [TestMethod]
     public async Task ShouldReceiveNotificationsAfterAwait()
