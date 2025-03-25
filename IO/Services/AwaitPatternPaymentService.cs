@@ -12,6 +12,7 @@ public static class AwaitPatternPaymentService
     public static async Task ProcessPaymentsAsync()
     {
         _notifications.Clear();
+
         var items = new List<PaymentItem>
             {
                 new(0, 3000, "Payment processed for Order 0"),
@@ -40,6 +41,7 @@ public static class AwaitPatternPaymentService
     public static async Task ProcessPaymentsWithException()
     {
         _notifications.Clear();
+
         var items = new List<PaymentItem>
             {
                 new(0, 3000, "Payment processed for Order 0"),
