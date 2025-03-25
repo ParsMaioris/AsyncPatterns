@@ -3,7 +3,7 @@ using ThreadBound.IO.Services;
 namespace ThreadBound.IO;
 
 [TestClass]
-public class TaskBasedAsyncTests
+public class TaskBasedAsyncDemo
 {
     [TestMethod]
     public async Task ShouldReceiveInlineNotifications()

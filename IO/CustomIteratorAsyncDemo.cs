@@ -3,7 +3,7 @@ using ThreadBound.IO.Services;
 namespace ThreadBound.IO;
 
 [TestClass]
-public class CustomIteratorAsyncTests
+public class CustomIteratorAsyncDemo
 {
     static readonly List<(int index, string note)> Notifications = new();
 

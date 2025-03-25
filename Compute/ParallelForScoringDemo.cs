@@ -3,7 +3,7 @@ using ThreadBound.Compute.Services;
 namespace ThreadBound.Compute;
 
 [TestClass]
-public class ParallelForScoringTests
+public class ParallelForScoringDemo
 {
     [TestMethod]
     public void ShouldComputeScoresUsingParallelForAndForEach()

@@ -3,7 +3,7 @@ using ThreadBound.Events.Domain;
 namespace ThreadBound.Events;
 
 [TestClass]
-public class EventTests
+public class EventDemo
 {
     [TestMethod]
     public void SingleSubscriberReceivesEvent()

@@ -3,7 +3,7 @@ using ThreadBound.Compute.Services;
 namespace ThreadBound.Compute;
 
 [TestClass]
-public class PLINQScoringTests
+public class PLINQScoringDemo
 {
     [TestMethod]
     public void ShouldComputeScoresUsingPLINQ()
