@@ -9,17 +9,31 @@ public class PLINQScoringTests
     public void ShouldComputeScoresUsingPLINQ()
     {
         var customers = CustomerFactory.Build(100);
-        var stats = customers
+        var finalStats = customers
             .AsParallel()
             .Aggregate(
-                () => new ScoreAccumulator(),
-                (acc, c) => acc.Accumulate(ComputeEngine.EvaluateScore(c.Value)),
-                (acc1, acc2) => acc1.Combine(acc2),
-                final => final
+                () => (sum: 0L, max: long.MinValue, min: long.MaxValue),
+                (acc, customer) =>
+                {
+                    var score = ComputeEngine.EvaluateScore(customer.Value);
+                    acc.sum += score;
+                    if (score > acc.max) acc.max = score;
+                    if (score < acc.min) acc.min = score;
+                    return acc;
+                },
+                (acc1, acc2) =>
+                {
+                    var combinedSum = acc1.sum + acc2.sum;
+                    var combinedMax = acc1.max > acc2.max ? acc1.max : acc2.max;
+                    var combinedMin = acc1.min < acc2.min ? acc1.min : acc2.min;
+                    return (combinedSum, combinedMax, combinedMin);
+                },
+                result => result
             );
-        Assert.IsTrue(stats.Sum > 0);
-        Assert.IsTrue(stats.Max > 0);
-        Assert.IsTrue(stats.Min >= 0);
+
+        Assert.IsTrue(finalStats.sum > 0);
+        Assert.IsTrue(finalStats.max > 0);
+        Assert.IsTrue(finalStats.min >= 0);
     }
 
     [TestMethod]
@@ -28,18 +42,30 @@ public class PLINQScoringTests
         var customers = CustomerFactory.Build(100);
         try
         {
-            var stats = customers
+            var result = customers
                 .AsParallel()
                 .Aggregate(
-                    () => new ScoreAccumulator(),
-                    (acc, c) =>
+                    () => (sum: 0L, max: long.MinValue, min: long.MaxValue),
+                    (acc, customer) =>
                     {
-                        if (c.Id == 50) throw new InvalidOperationException("Simulated exception in PLINQ");
-                        return acc.Accumulate(ComputeEngine.EvaluateScore(c.Value));
+                        if (customer.Id == 50)
+                            throw new InvalidOperationException("Simulated exception in PLINQ");
+                        var score = ComputeEngine.EvaluateScore(customer.Value);
+                        acc.sum += score;
+                        if (score > acc.max) acc.max = score;
+                        if (score < acc.min) acc.min = score;
+                        return acc;
                     },
-                    (acc1, acc2) => acc1.Combine(acc2),
+                    (acc1, acc2) =>
+                    {
+                        var combinedSum = acc1.sum + acc2.sum;
+                        var combinedMax = acc1.max > acc2.max ? acc1.max : acc2.max;
+                        var combinedMin = acc1.min < acc2.min ? acc1.min : acc2.min;
+                        return (combinedSum, combinedMax, combinedMin);
+                    },
                     final => final
                 );
+
             Assert.Fail();
         }
         catch (AggregateException ex)
@@ -49,35 +75,5 @@ public class PLINQScoringTests
                     e is InvalidOperationException &&
                     e.Message.Contains("Simulated exception in PLINQ")));
         }
-    }
-}
-
-public class ScoreAccumulator
-{
-    public long Sum { get; private set; }
-    public long Max { get; private set; }
-    public long Min { get; private set; }
-
-    public ScoreAccumulator()
-    {
-        Sum = 0;
-        Max = long.MinValue;
-        Min = long.MaxValue;
-    }
-
-    public ScoreAccumulator Accumulate(long value)
-    {
-        Sum += value;
-        if (value > Max) Max = value;
-        if (value < Min) Min = value;
-        return this;
-    }
-
-    public ScoreAccumulator Combine(ScoreAccumulator other)
-    {
-        Sum += other.Sum;
-        if (other.Max > Max) Max = other.Max;
-        if (other.Min < Min) Min = other.Min;
-        return this;
     }
 }
