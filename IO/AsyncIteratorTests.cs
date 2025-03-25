@@ -1,4 +1,3 @@
-using System;
 using ThreadBound.IO.Services;
 
 namespace ThreadBound.IO;
@@ -6,26 +5,37 @@ namespace ThreadBound.IO;
 [TestClass]
 public class AsyncIteratorTests
 {
+    private static readonly List<(int index, string note)> _notifications = new();
+    private static readonly object _sync = new();
+
     [TestMethod]
     public async Task ShouldProcessPaymentsInExpectedOrder()
     {
+        _notifications.Clear();
         var payments = await CollectPaymentsAsync();
 
-        Assert.AreEqual(4, payments.Count, "Expected exactly four payments to be processed.");
+        Assert.AreEqual(4, payments.Count);
 
-        var expectedOrder = new List<int> { 3, 1, 2, 0 };
-        var actualOrder = payments.Select(payment => payment.index).ToList();
-        CollectionAssert.AreEqual(expectedOrder, actualOrder, "The payment processing order is incorrect.");
+        var expected = new List<int> { 3, 1, 2, 0 };
+        var actual = payments.Select(p => p.index).ToList();
+
+        CollectionAssert.AreEqual(expected, actual);
+        Assert.AreEqual(4, _notifications.Count);
     }
 
     private static async Task<List<(int index, string data)>> CollectPaymentsAsync()
     {
-        var collectedPayments = new List<(int index, string data)>();
-        await foreach (var payment in AsyncIteratorPaymentService.GetPayments())
+        var results = new List<(int index, string data)>();
+        await foreach (var item in AsyncIteratorPaymentService.GetPayments())
         {
-            collectedPayments.Add(payment);
+            results.Add(item);
+            var note = $"Notification: Payment {item.index} processed - {item.data}";
+            lock (_sync)
+            {
+                _notifications.Add((item.index, note));
+            }
         }
-        return collectedPayments;
+        return results;
     }
 
     [TestMethod]
@@ -37,8 +47,13 @@ public class AsyncIteratorTests
             await foreach (var entry in AsyncIteratorPaymentService.GetPaymentsWithException())
             {
                 list.Add(entry);
+                var note = $"Notification: Payment {entry.index} processed - {entry.data}";
+                lock (_sync)
+                {
+                    _notifications.Add((entry.index, note));
+                }
             }
-            Assert.Fail("Expected exception was not thrown");
+            Assert.Fail("Expected exception was not thrown.");
         }
         catch (InvalidOperationException ex)
         {
