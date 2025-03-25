@@ -17,6 +17,7 @@ public class AsyncIteratorTests
         Assert.AreEqual(4, payments.Count);
 
         var expected = new List<int> { 3, 1, 2, 0 };
+
         var actual = payments.Select(p => p.index).ToList();
 
         CollectionAssert.AreEqual(expected, actual);
@@ -53,6 +54,7 @@ public class AsyncIteratorTests
                     _notifications.Add((entry.index, note));
                 }
             }
+
             Assert.Fail("Expected exception was not thrown.");
         }
         catch (InvalidOperationException ex)
