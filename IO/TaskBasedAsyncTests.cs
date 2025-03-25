@@ -1,4 +1,3 @@
-using System;
 using ThreadBound.IO.Services;
 
 namespace ThreadBound.IO;
@@ -7,40 +6,22 @@ namespace ThreadBound.IO;
 public class TaskBasedAsyncTests
 {
     [TestMethod]
-    public async Task ShouldReceiveNotificationsAfterAwait()
+    public async Task ShouldReceiveInlineNotifications()
     {
-        var notifications = new List<(int index, string note)>();
-        var lockObj = new object();
-
-        var results = await AwaitPatternPaymentService.ProcessPaymentsAsync();
-        Parallel.ForEach(results, item =>
-        {
-            var note = $"Notification: Payment {item.index} processed - {item.data}";
-            lock (lockObj)
-            {
-                notifications.Add((item.index, note));
-            }
-        });
-
-        Assert.AreEqual(4, results.Count);
+        await AwaitPatternPaymentService.ProcessPaymentsAsync();
+        var notes = AwaitPatternPaymentService.Notifications;
+        Assert.AreEqual(4, notes.Count);
         var expected = new List<int> { 3, 1, 2, 0 };
-        var actual = results.Select(r => r.index).OrderBy(x => x).ToList();
+        var actual = notes.Select(n => n.index).OrderBy(x => x).ToList();
         CollectionAssert.AreEqual(expected.OrderBy(x => x).ToList(), actual);
-        Assert.AreEqual(4, notifications.Count);
     }
 
     [TestMethod]
-    public async Task ShouldThrowExceptionInAwaitPattern()
+    public async Task ShouldThrowExceptionInInlineNotification()
     {
-        var notifications = new List<(int index, string note)>();
-
         try
         {
-            var results = await AwaitPatternPaymentService.ProcessPaymentsWithException();
-            Parallel.ForEach(results, item =>
-            {
-                notifications.Add((item.index, $"Notification: Payment {item.index} processed - {item.data}"));
-            });
+            await AwaitPatternPaymentService.ProcessPaymentsWithException();
             Assert.Fail("Expected exception was not thrown.");
         }
         catch (InvalidOperationException ex)
@@ -48,6 +29,7 @@ public class TaskBasedAsyncTests
             Assert.AreEqual("Simulated exception in inline notification", ex.Message);
         }
 
-        Assert.IsTrue(notifications.Count < 4);
+        var notes = AwaitPatternPaymentService.Notifications;
+        Assert.IsTrue(notes.Count < 4);
     }
 }
