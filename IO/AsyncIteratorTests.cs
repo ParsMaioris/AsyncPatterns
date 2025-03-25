@@ -7,17 +7,25 @@ namespace ThreadBound.IO;
 public class AsyncIteratorTests
 {
     [TestMethod]
-    public async Task ShouldProcessPaymentsAsyncIterator()
+    public async Task ShouldProcessPaymentsInExpectedOrder()
     {
-        var output = new List<(int index, string data)>();
-        await foreach (var entry in AsyncIteratorPaymentService.GetPayments())
+        var payments = await CollectPaymentsAsync();
+
+        Assert.AreEqual(4, payments.Count, "Expected exactly four payments to be processed.");
+
+        var expectedOrder = new List<int> { 3, 1, 2, 0 };
+        var actualOrder = payments.Select(payment => payment.index).ToList();
+        CollectionAssert.AreEqual(expectedOrder, actualOrder, "The payment processing order is incorrect.");
+    }
+
+    private static async Task<List<(int index, string data)>> CollectPaymentsAsync()
+    {
+        var collectedPayments = new List<(int index, string data)>();
+        await foreach (var payment in AsyncIteratorPaymentService.GetPayments())
         {
-            output.Add(entry);
+            collectedPayments.Add(payment);
         }
-        Assert.AreEqual(4, output.Count);
-        var expectedCompletionOrder = new List<int> { 3, 1, 2, 0 };
-        var actualOrder = output.Select(e => e.index).ToList();
-        CollectionAssert.AreEqual(expectedCompletionOrder, actualOrder);
+        return collectedPayments;
     }
 
     [TestMethod]
